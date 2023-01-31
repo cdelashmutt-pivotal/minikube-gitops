@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: namespace-gitops
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: default-ns-role
+  namespace: namespace-gitops
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "create", "update", "delete"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: default-ns-role-binding
+  namespace: namespace-gitops
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: namespace-gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: default-ns-role
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: namespace-gitops
+rules:
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "create", "update"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: namespace-gitops
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: namespace-gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: namespace-gitops
+---
+apiVersion: kappctrl.k14s.io/v1alpha1
+kind: App
+metadata:
+  name: namespace-app
+  namespace: namespace-gitops
+spec:
+  serviceAccountName: default
+  fetch:
+  - git:
+      url: https://github.com/cdelashmutt-pivotal/minikube-gitops
+      ref: origin/main
+      subPath: config
+
+  template:
+  - ytt: {}
+
+  deploy:
+  - kapp: {}
